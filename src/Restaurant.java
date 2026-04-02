@@ -1,4 +1,5 @@
 public class Restaurant implements Mediator {
+
     private OrderService orderService;
     private CancellationService cancellationService;
     private PreparationArea preparationArea;
@@ -32,12 +33,14 @@ public class Restaurant implements Mediator {
         switch (event) {
             case "TICK":
                 currentTick++;
-                // reverse order of ticks must be done to prevent
-                // new orders being completed in one tick
-                waitress.tick();
-                paymentService.tick();
-                chef.tick();
-                orderService.tick();
+                orderService.createOrder();
+                cancellationService.cancelOrder();
+                for (Order o : orders.getByState(OrderState.RECEIVED)) {
+                    preparationArea.addOrder(o);
+                }
+                chef.prepareOrders();
+                paymentService.addPaymentStatus();
+                waitress.serveDeliveries();
                 if (currentTick % 2 == 0) {
                     display.show(currentTick);
                 }
@@ -45,34 +48,69 @@ public class Restaurant implements Mediator {
 
             case "ORDER_CREATED":
                 state.incrementCreated();
-                cancellationService.checkCancellation();
-                preparationArea.addOrder(order);
+                orders.add(order);
                 break;
 
             case "ORDER_CANCELED":
                 order.setOrderState(OrderState.CANCELED);
-                state.incrementCanceled();
+                state.incrementEarlyCanceled();
                 break;
 
-            case "PREPARATION_DONE":
-                // PaymentService will pick it up on its tick
+            case "PREPARATION_STARTED":
+                if (order.getOrderState() != OrderState.RECEIVED) {
+                    throw new InvalidOrderStateException(
+                        "Cannot add order #" + order.getId() + " to preparation. State: " + order.getOrderState());
+                }
+                order.setOrderState(OrderState.IN_PREPARATION);
+                System.out.println("[PreparationArea] Order #" + order.getId() +
+                    " added to preparation (Prep time: " + order.getPreparationTime() + "s).");
+                break;
+
+            case "PREPARE_TICK":
+                int prepRemaining = order.getRemainingPrepTime() - 1;
+                order.setRemainingPrepTime(prepRemaining);
+                if (prepRemaining <= 0) {
+                    order.setOrderState(OrderState.PREPARATION_COMPLETED);
+                    System.out.println("[Chef] Order #" + order.getId() + " preparation completed.");
+                }
                 break;
 
             case "PAYMENT_APPROVED":
+                order.setPaymentState(PaymentState.APPROVED);
                 waitress.startDelivery(order);
                 break;
 
             case "PAYMENT_FAILED":
-                state.incrementCanceled();
+                order.setPaymentState(PaymentState.FAILED);
+                order.setOrderState(OrderState.CANCELED);
+                state.incrementPaymentFailed();
                 break;
 
-            case "DELIVERY_COMPLETE":
-                state.incrementDelivered();
-                state.addRevenue(order.getPrice());
+            case "DELIVERY_STARTED":
+                order.setOrderState(OrderState.IN_DELIVERY);
+                order.setDeliveryState(DeliveryState.IN_TRANSIT);
+                if (ProbabilityCalculator.isDeliveryDelayed()) {
+                    order.setDelayed(true);
+                    order.setRemainingDeliveryTime(order.getRemainingDeliveryTime() + 2);
+                    order.setDeliveryState(DeliveryState.DELAYED);
+                    System.out.println("[Waitress] Order #" + order.getId() + " delivery DELAYED (+2s).");
+                    state.incrementDelayed();
+                } else {
+                    System.out.println("[Waitress] Order #" + order.getId() + " out for delivery (" +
+                        order.getRemainingDeliveryTime() + "s).");
+                }
                 break;
 
-            case "DELIVERY_DELAYED":
-                state.incrementDelayed();
+            case "DELIVERY_TICK":
+                int delRemaining = order.getRemainingDeliveryTime() - 1;
+                order.setRemainingDeliveryTime(delRemaining);
+                if (delRemaining <= 0) {
+                    order.setOrderState(OrderState.DELIVERED);
+                    order.setDeliveryState(DeliveryState.DELIVERED);
+                    System.out.println("[Waitress] Order #" + order.getId() + " delivered!");
+                    state.incrementDelivered();
+                    state.addRevenue(order.getPrice());
+                }
                 break;
 
             default:
