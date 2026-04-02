@@ -4,8 +4,8 @@ public class OrderService extends RestaurantComponent {
         super(mediator);
     }
 
-    public void tick() {
-        if (ProbabilityCalculator.shouldGenerateOrder()) {
+    public void createOrder() {
+        if (ProbabilityCalculator.shouldGenerateOrder()) { // 65% chance to generate a new order each second
             double price = ProbabilityCalculator.randomPrice();
             int prepTime = ProbabilityCalculator.randomPrepTime();
             int deliveryTime = ProbabilityCalculator.randomDeliveryTime();

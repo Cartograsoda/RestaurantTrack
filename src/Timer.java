@@ -8,7 +8,7 @@ public class Timer extends RestaurantComponent {
 
     public void start() {
         for (int tick = 1; tick <= totalTicks; tick++) {
-            System.out.println("\n>>> TICK " + tick + " <<<");
+            System.out.println("\n>>> SECOND " + tick + " <<<");
             mediator.notify(this, "TICK", null);
             try {
                 Thread.sleep(1000);

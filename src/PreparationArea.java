@@ -1,6 +1,6 @@
-import java.util.List;
 
 public class PreparationArea extends RestaurantComponent {
+
     private OrderCollection<Order> orders;
 
     public PreparationArea(Mediator mediator, OrderCollection<Order> orders) {
@@ -9,14 +9,7 @@ public class PreparationArea extends RestaurantComponent {
     }
 
     public void addOrder(Order order) {
-        if (order.getOrderState() != OrderState.RECEIVED) {
-            throw new InvalidOrderStateException(
-                    "Cannot add order #" + order.getId() + " to preparation. State: " + order.getOrderState());
-        }
-        order.setOrderState(OrderState.IN_PREPARATION);
-        orders.add(order);
-        System.out.println("[PreparationArea] Order #" + order.getId() +
-                " added to preparation (Prep time: " + order.getPreparationTime() + "s).");
+        mediator.notify(this, "PREPARATION_STARTED", order);
     }
 
     public OrderCollection<Order> getOrders() {
