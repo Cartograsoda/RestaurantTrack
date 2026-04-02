@@ -8,7 +8,7 @@ public class CancellationService extends RestaurantComponent {
         this.orders = orders;
     }
 
-    public void tick() {
+    public void checkCancellation() {
         List<Order> receivedOrders = orders.getByState(OrderState.RECEIVED);
         for (Order order : receivedOrders) {
             if (ProbabilityCalculator.shouldCancelEarly()) {

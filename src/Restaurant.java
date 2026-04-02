@@ -32,11 +32,12 @@ public class Restaurant implements Mediator {
         switch (event) {
             case "TICK":
                 currentTick++;
-                orderService.tick();
-                cancellationService.tick();
-                chef.tick();
-                paymentService.tick();
+                // reverse order of ticks must be done to prevent
+                // new orders being completed in one tick
                 waitress.tick();
+                paymentService.tick();
+                chef.tick();
+                orderService.tick();
                 if (currentTick % 2 == 0) {
                     display.show(currentTick);
                 }
@@ -44,6 +45,7 @@ public class Restaurant implements Mediator {
 
             case "ORDER_CREATED":
                 state.incrementCreated();
+                cancellationService.checkCancellation();
                 preparationArea.addOrder(order);
                 break;
 
