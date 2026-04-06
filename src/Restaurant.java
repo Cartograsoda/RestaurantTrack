@@ -1,4 +1,6 @@
-public class Restaurant implements Mediator {
+import java.util.List;
+
+public class Restaurant {
     private OrderService orderService;
     private CancellationService cancellationService;
     private PreparationArea preparationArea;
@@ -9,82 +11,76 @@ public class Restaurant implements Mediator {
     private Timer timer;
 
     private RestaurantState state;
-    private OrderCollection<Order> orders;
-    private int currentTick;
 
     public Restaurant() {
         this.state = new RestaurantState();
-        this.orders = new OrderCollection<>();
-        this.currentTick = 0;
 
         this.orderService = new OrderService(this);
-        this.cancellationService = new CancellationService(this, orders);
-        this.preparationArea = new PreparationArea(this, orders);
-        this.chef = new Chef(this, orders);
-        this.paymentService = new PaymentService(this, orders);
-        this.waitress = new Waitress(this, orders);
-        this.display = new Display(this, state, orders);
+        this.cancellationService = new CancellationService(this);
+        this.preparationArea = new PreparationArea(this);
+        this.chef = new Chef(this);
+        this.paymentService = new PaymentService(this);
+        this.waitress = new Waitress(this);
+        this.display = new Display(this, state);
         this.timer = new Timer(this, 10);
     }
 
-    @Override
-    public void notify(RestaurantComponent sender, String event, Order order) {
-        switch (event) {
-            case "TICK":
-                currentTick++;
-                // reverse order of ticks must be done to prevent
-                // new orders being completed in one tick
-                waitress.tick();
-                paymentService.tick();
-                chef.tick();
-                orderService.tick();
-                if (currentTick % 2 == 0) {
-                    display.show(currentTick);
-                }
-                break;
+    public void onTick() {
+        waitress.deliver();
+        chef.cook();
+        orderService.createOrder();
+        display.setDisplayedOrders(getOrders());
+        display.show(timer.getCurrentTick());
+    }
 
-            case "ORDER_CREATED":
-                state.incrementCreated();
-                cancellationService.checkCancellation();
-                preparationArea.addOrder(order);
-                break;
-
-            case "ORDER_CANCELED":
-                order.setOrderState(OrderState.CANCELED);
-                state.incrementCanceled();
-                break;
-
-            case "PREPARATION_DONE":
-                // PaymentService will pick it up on its tick
-                break;
-
-            case "PAYMENT_APPROVED":
-                waitress.startDelivery(order);
-                break;
-
-            case "PAYMENT_FAILED":
-                state.incrementCanceled();
-                break;
-
-            case "DELIVERY_COMPLETE":
-                state.incrementDelivered();
-                state.addRevenue(order.getPrice());
-                break;
-
-            case "DELIVERY_DELAYED":
-                state.incrementDelayed();
-                break;
-
-            default:
-                System.out.println("[Restaurant] Unknown event: " + event);
+    public void notifyOrderCreated(Order order) {
+        state.incrementCreated();
+        state.incrementWaitingCount();
+        cancellationService.checkCancellation(order);
+        if (preparationArea.addOrder(order)) {
+            chef.startCooking(order);
+            state.incrementPreparedCount();
         }
     }
 
-    @Override
+    public void notifyOrderCanceled(Order order) {
+        state.decrementWaitingCount();
+        state.incrementEarlyCanceledCount();
+    }
+
+    public void notifyPreparationDone(Order order) {
+        paymentService.receiveOrderForPayment(order);
+        state.decrementPreparedCount();
+    }
+
+    public List<Order> getOrders() {
+        return preparationArea.getOrders();
+    }
+
+    public void notifyPaymentApproved(Order order) {
+        waitress.startDelivery(order);
+        state.incrementInDelivery();
+        state.decrementWaitingCount();
+    }
+
+    public void notifyPaymentFailed(Order order) {
+        state.decrementWaitingCount();
+        state.incrementPaymentFailedCount();
+    }
+
+    public void notifyDeliveryDelayed(Order order) {
+        state.incrementDelayed();
+    }
+
+    public void notifyDeliveryCompleted(Order order) {
+        state.decrementInDelivery();
+        state.incrementDelivered();
+        state.addRevenue(order.getPrice());
+    }
+
     public void start() {
         System.out.println("=== Restaurant Simulation Starting ===");
         timer.start();
-        display.show(currentTick);
         System.out.println("=== Restaurant Simulation Complete ===");
     }
 }

@@ -1,20 +1,15 @@
 import java.util.List;
 
 public class CancellationService extends RestaurantComponent {
-    private OrderCollection<Order> orders;
-
-    public CancellationService(Mediator mediator, OrderCollection<Order> orders) {
+    public CancellationService(Restaurant mediator) {
         super(mediator);
-        this.orders = orders;
     }
 
-    public void checkCancellation() {
-        List<Order> receivedOrders = orders.getByState(OrderState.RECEIVED);
-        for (Order order : receivedOrders) {
-            if (ProbabilityCalculator.shouldCancelEarly()) {
-                System.out.println("[CancellationService] Order #" + order.getId() + " canceled early.");
-                mediator.notify(this, "ORDER_CANCELED", order);
-            }
+    public void checkCancellation(Order order) {
+        if (ProbabilityCalculator.shouldCancelEarly()) {
+            System.out.println("[CancellationService] Order #" + order.getId() + " canceled early.");
+            order.setOrderState(OrderState.CANCELED);
+            mediator.notifyOrderCanceled(order);
         }
     }
 

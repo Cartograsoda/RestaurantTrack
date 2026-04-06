@@ -1,7 +1,8 @@
 public class Timer extends RestaurantComponent {
     private int totalTicks;
+    private int currentTick;
 
-    public Timer(Mediator mediator, int totalTicks) {
+    public Timer(Restaurant mediator, int totalTicks) {
         super(mediator);
         this.totalTicks = totalTicks;
     }
@@ -9,7 +10,8 @@ public class Timer extends RestaurantComponent {
     public void start() {
         for (int tick = 1; tick <= totalTicks; tick++) {
             System.out.println("\n>>> TICK " + tick + " <<<");
-            mediator.notify(this, "TICK", null);
+            currentTick = tick;
+            mediator.onTick();
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
@@ -18,6 +20,10 @@ public class Timer extends RestaurantComponent {
             }
         }
         System.out.println("\n>>> SIMULATION ENDED <<<");
+    }
+
+    public int getCurrentTick() {
+        return currentTick;
     }
 
     @Override

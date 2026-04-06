@@ -1,22 +1,35 @@
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class Chef extends RestaurantComponent {
-    private OrderCollection<Order> orders;
+    private List<Order> ordersInPreparation;
 
-    public Chef(Mediator mediator, OrderCollection<Order> orders) {
+    public Chef(Restaurant mediator) {
         super(mediator);
-        this.orders = orders;
+        ordersInPreparation = new ArrayList<>();
     }
 
-    public void tick() {
-        List<Order> inPrep = orders.getByState(OrderState.IN_PREPARATION);
-        for (Order order : inPrep) {
+    public void startCooking(Order order) {
+        if (order.getOrderState() != OrderState.IN_PREPARATION) {
+            throw new InvalidOrderStateException(
+                    "Cannot start cooking order #" + order.getId() + ". State: " + order.getOrderState());
+        }
+        ordersInPreparation.add(order);
+    }
+
+    public void cook() {
+        Iterator<Order> it = ordersInPreparation.iterator();
+        while (it.hasNext()) {
+            Order order = it.next();
             int remaining = order.getRemainingPrepTime() - 1;
             order.setRemainingPrepTime(remaining);
             if (remaining <= 0) {
                 order.setOrderState(OrderState.PREPARATION_COMPLETED);
                 System.out.println("[Chef] Order #" + order.getId() + " preparation completed.");
-                mediator.notify(this, "PREPARATION_DONE", order);
+
+                it.remove();
+                mediator.notifyPreparationDone(order);
             }
         }
     }

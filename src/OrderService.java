@@ -1,10 +1,10 @@
 public class OrderService extends RestaurantComponent {
 
-    public OrderService(Mediator mediator) {
+    public OrderService(Restaurant mediator) {
         super(mediator);
     }
 
-    public void tick() {
+    public void createOrder() {
         if (ProbabilityCalculator.shouldGenerateOrder()) {
             double price = ProbabilityCalculator.randomPrice();
             int prepTime = ProbabilityCalculator.randomPrepTime();
@@ -13,7 +13,8 @@ public class OrderService extends RestaurantComponent {
             System.out.println("[OrderService] New order created: Order #" + order.getId() +
                     " (Price: " + String.format("%.2f", price) +
                     ", Prep: " + prepTime + "s, Delivery: " + deliveryTime + "s)");
-            mediator.notify(this, "ORDER_CREATED", order);
+
+            mediator.notifyOrderCreated(order);
         }
     }
 

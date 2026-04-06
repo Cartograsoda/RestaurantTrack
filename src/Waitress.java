@@ -1,11 +1,13 @@
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class Waitress extends RestaurantComponent {
-    private OrderCollection<Order> orders;
+    private List<Order> ordersInDelivery;
 
-    public Waitress(Mediator mediator, OrderCollection<Order> orders) {
+    public Waitress(Restaurant mediator) {
         super(mediator);
-        this.orders = orders;
+        this.ordersInDelivery = new ArrayList<>();
     }
 
     public void startDelivery(Order order) {
@@ -15,29 +17,34 @@ public class Waitress extends RestaurantComponent {
         }
         order.setOrderState(OrderState.IN_DELIVERY);
         order.setDeliveryState(DeliveryState.IN_TRANSIT);
+        ordersInDelivery.add(order);
 
         if (ProbabilityCalculator.isDeliveryDelayed()) {
             order.setDelayed(true);
             order.setRemainingDeliveryTime(order.getRemainingDeliveryTime() + 2);
             order.setDeliveryState(DeliveryState.DELAYED);
             System.out.println("[Waitress] Order #" + order.getId() + " delivery DELAYED (+2s).");
-            mediator.notify(this, "DELIVERY_DELAYED", order);
+
+            mediator.notifyDeliveryDelayed(order);
         } else {
             System.out.println("[Waitress] Order #" + order.getId() + " out for delivery (" +
                     order.getRemainingDeliveryTime() + "s).");
         }
     }
 
-    public void tick() {
-        List<Order> inDelivery = orders.getByState(OrderState.IN_DELIVERY);
-        for (Order order : inDelivery) {
+    public void deliver() {
+        Iterator<Order> it = ordersInDelivery.iterator();
+        while (it.hasNext()) {
+            Order order = it.next();
             int remaining = order.getRemainingDeliveryTime() - 1;
             order.setRemainingDeliveryTime(remaining);
+
             if (remaining <= 0) {
                 order.setOrderState(OrderState.DELIVERED);
                 order.setDeliveryState(DeliveryState.DELIVERED);
                 System.out.println("[Waitress] Order #" + order.getId() + " delivered!");
-                mediator.notify(this, "DELIVERY_COMPLETE", order);
+                it.remove();
+                mediator.notifyDeliveryCompleted(order);
             }
         }
     }

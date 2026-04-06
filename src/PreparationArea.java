@@ -1,25 +1,26 @@
+import java.util.ArrayList;
 import java.util.List;
 
 public class PreparationArea extends RestaurantComponent {
-    private OrderCollection<Order> orders;
+    private List<Order> orders;
 
-    public PreparationArea(Mediator mediator, OrderCollection<Order> orders) {
+    public PreparationArea(Restaurant mediator) {
         super(mediator);
-        this.orders = orders;
+        this.orders = new ArrayList<>();
     }
 
-    public void addOrder(Order order) {
+    public boolean addOrder(Order order) {
         if (order.getOrderState() != OrderState.RECEIVED) {
-            throw new InvalidOrderStateException(
-                    "Cannot add order #" + order.getId() + " to preparation. State: " + order.getOrderState());
+            return false;
         }
         order.setOrderState(OrderState.IN_PREPARATION);
         orders.add(order);
         System.out.println("[PreparationArea] Order #" + order.getId() +
                 " added to preparation (Prep time: " + order.getPreparationTime() + "s).");
+        return true;
     }
 
-    public OrderCollection<Order> getOrders() {
+    public List<Order> getOrders() {
         return orders;
     }
 

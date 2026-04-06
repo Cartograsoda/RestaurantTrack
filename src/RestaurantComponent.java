@@ -1,11 +1,11 @@
 public abstract class RestaurantComponent {
-    protected Mediator mediator;
+    protected Restaurant mediator;
 
-    public RestaurantComponent(Mediator mediator) {
+    public RestaurantComponent(Restaurant mediator) {
         this.mediator = mediator;
     }
 
-    public void setMediator(Mediator mediator) {
+    public void setMediator(Restaurant mediator) {
         this.mediator = mediator;
     }
 

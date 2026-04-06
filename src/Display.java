@@ -1,35 +1,46 @@
+import java.util.ArrayList;
 import java.util.List;
 
 public class Display extends RestaurantComponent {
     private RestaurantState state;
-    private OrderCollection<Order> orders;
+    private List<Order> displayedOrders;
 
-    public Display(Mediator mediator, RestaurantState state, OrderCollection<Order> orders) {
+    public Display(Restaurant mediator, RestaurantState state) {
         super(mediator);
         this.state = state;
-        this.orders = orders;
+        this.displayedOrders = new ArrayList<>();
     }
 
     public void show(int tick) {
-        System.out.println("\n========== DISPLAY (Tick " + tick + ") ==========");
-        System.out.println("Total Orders Created : " + state.getTotalCreated());
-        System.out.println("Canceled             : " + state.getCanceledCount());
-        System.out.println("Delayed              : " + state.getDelayedCount());
-        System.out.println("Delivered            : " + state.getDeliveredCount());
-        System.out.println("Total Revenue        : " + String.format("%.2f", state.getTotalRevenue()));
-        System.out.println("--- Active Orders ---");
-        List<Order> all = orders.getAll();
-        if (all.isEmpty()) {
-            System.out.println("  (none)");
-        } else {
-            for (Order order : all) {
-                if (order.getOrderState() != OrderState.DELIVERED &&
-                    order.getOrderState() != OrderState.CANCELED) {
+        if (tick % 2 == 0) {
+            System.out.println("\n========== DISPLAY (Tick " + tick + ") ==========");
+            System.out.println("Total Orders Created       : " + state.getTotalCreated());
+            System.out.println("Number of Canceled Orders  : " + state.getCanceledCount() + " (Early Cancellation: " + state.getEarlyCanceledCount() + ", Payment Failed: " + state.getPaymentFailedCount() + ")");
+            System.out.println("Number of Delayed Orders   : " + state.getDelayedCount());
+            System.out.println("Number of Delivered Orders : " + state.getDeliveredCount());
+            System.out.println("Currently Being Prepared   : " + state.getPreparedCount());
+            System.out.println("Waiting (Prep Completed)   : " + state.getWaitingCount());
+            System.out.println("Currently In Delivery      : " + state.getInDelivery());
+            List<Order> activeOrders = displayedOrders.stream()
+                    .filter(o -> o.getOrderState() != OrderState.DELIVERED
+                            && o.getOrderState() != OrderState.CANCELED)
+                    .toList();
+            System.out.println("Number of Active Orders    : " + activeOrders.size());
+            System.out.println("State of Active Orders     :");
+            if (activeOrders.isEmpty()) {
+                System.out.println("  (none)");
+            } else {
+                for (Order order : activeOrders) {
                     System.out.println("  " + order);
                 }
             }
+            System.out.println("Total Revenue             : " + String.format("%.2f", state.getTotalRevenue()));
+            System.out.println("====================================\n");
         }
-        System.out.println("====================================\n");
+    }
+
+    public void setDisplayedOrders(List<Order> orders) {
+        displayedOrders = orders;
     }
 
     @Override
